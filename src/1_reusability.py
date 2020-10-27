@@ -1,20 +1,20 @@
 # Based on:
 # https://www.tensorflow.org/tutorials/keras/classification
 # https://github.com/tensorflow/docs/blob/master/site/en/tutorials/keras/classification.ipynb
-# https://www.tensorflow.org/tensorboard/get_started
+# https://www.tensorflow.org/tutorials/keras/save_and_load
 
 # TensorFlow and tf.keras
 import tensorflow as tf
 
 # Helper libraries
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import IPython.display as display
-import datetime
 
 class Inferer():
 
-	def __init__(self):
+	def __init__(self, load_model=False, load_checkpoint=False):
 
 		print('Tensorflow version:')
 		print(tf.__version__)
@@ -44,11 +44,29 @@ class Inferer():
 		# view samples with labels to get an extended impression of the dataset
 		# self.show_samples_with_labels()
 
-		self.log_dir = "tutorial_image_classification/logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-		self.tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=self.log_dir, histogram_freq=1)
+		self.checkpoint_path = "src/checkpoints/cp-{epoch:04d}.ckpt"
+		self.checkpoint_dir = os.path.dirname(self.checkpoint_path)
 
-		# create simple sequential model with 3 layers
-		self.model = self.create_model()
+		# Create a callback that saves the model's weights
+		self.cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=self.checkpoint_path,
+												save_weights_only=True,
+												verbose=1,
+												period=5) # every five epochs
+
+		self.saved_model_path = 'src/saved_model/mnist_reusability'
+
+		if load_model == True:
+			try:
+				# load previously saved model
+				self.model = tf.keras.models.load_model(self.saved_model_path)
+				print('model loaded:')
+				print(self.model.summary())
+			except Exception as e:
+				exit(e)
+
+		else:
+			# create simple sequential model with 3 layers
+			self.model = self.create_model(load_checkpoint)
 
 		# compile with chosen optimizer and loss function
 		self.model.compile(optimizer='adam',
@@ -80,22 +98,47 @@ class Inferer():
 			plt.xlabel(self.class_names[self.train_labels[i]])
 		plt.show()
 
-	def create_model(self):
+	def create_model(self, load_checkpoint):
 		model = tf.keras.Sequential([
 			tf.keras.layers.Flatten(input_shape=self.input_shape),
 			tf.keras.layers.Dense(128, activation='relu'),
 			tf.keras.layers.Dense(10)
 		])
 
+		# Display the model's architecture
+		# print(model.summary())
+
+		if load_checkpoint == True:
+			# load weights, if checkpoint data exists
+			latest = tf.train.latest_checkpoint(self.checkpoint_dir)
+			if latest != None:
+				print('Checkpoint found:')
+				print(latest)
+				model.load_weights(latest)
+				print('Checkpoint loaded')
+				return model
+			else:
+				print('No checkpoint found')
+
+		# model.save_weights(self.checkpoint_path.format(epoch=0))
+
 		return model
 
-	def train(self):
-		self.model.fit(
+	def train(self, save_checkpoints):
+
+		if save_checkpoints:
+			self.model.fit(
 				self.train_images,
 				self.train_labels,
 				epochs=self.epochs,
 				validation_data=(self.test_images, self.test_labels), # use test data for validation
-				callbacks=[self.tensorboard_callback]) # Pass callback for tensorboard
+				callbacks=[self.cp_callback]) # Pass callback to training
+		else:
+			self.model.fit(
+				self.train_images,
+				self.train_labels,
+				epochs=self.epochs,
+				validation_data=(self.test_images, self.test_labels)) # use test data for validation # Pass callback to training
 
 	def test(self):
 		test_loss, test_acc = self.model.evaluate(self.test_images,  self.test_labels, verbose=2)
@@ -182,17 +225,14 @@ class Inferer():
 		# index of the max prediction (=> index of predicted label)
 		print(np.argmax(predictions_single[0]))
 
-
+	def save_model(self):
+		self.model.save(self.saved_model_path)
 
 if __name__ == "__main__":
 
-	inferer = Inferer()
+	inferer = Inferer(False, False)
 
-	# before training start tensorboard in terminal:
-	# tensorboard --logdir tutorial_image_classification/logs/fit
-	# access tensorboard at http://localhost:6006/
-
-	inferer.train()
+	inferer.train(False)
 
 	# inferer.test()
 
@@ -202,3 +242,4 @@ if __name__ == "__main__":
 
 	# inferer.test_single_image()
 
+	inferer.save_model()

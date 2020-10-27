@@ -1,6 +1,6 @@
 .vscode/
 venv_tf_tutorial/
-tutorial_image_classification/saved_model
-tutorial_image_classification/checkpoints
-tutorial_image_classification/logs
+saved_model
+checkpoints
+logs
 
