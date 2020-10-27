@@ -1,5 +1,9 @@
 # Tensorflow Tutorial Python
 
+This is a repo made by a student for a tutorial at an university of applied science.
+
+For official tutorials go to:
+
 https://www.tensorflow.org/
 
 ## Setup
@@ -32,7 +36,7 @@ https://www.tensorflow.org/install
 
 python3 -m pip install tensorflow
 
-### Other Python Libraries
+### Other Libraries
 
 python3 -m pip install matplotlib ipython
 
@@ -49,9 +53,3 @@ https://www.tensorflow.org/install/gpu#software_requirements
 Issues with some cards (e.g. GTX 1660 SUPER):
 
 export TF_FORCE_GPU_ALLOW_GROWTH=true
-
-#### TPU Support
-
-TODO
-
-
