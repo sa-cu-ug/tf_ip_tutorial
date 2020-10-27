@@ -1,6 +1,8 @@
 .vscode/
 venv_tf_tutorial/
+tflite_models/
 saved_model
 checkpoints
 logs
+__pycache__
 
