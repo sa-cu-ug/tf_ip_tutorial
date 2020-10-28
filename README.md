@@ -38,7 +38,7 @@ python3 -m pip install tensorflow
 
 ### Other Libraries
 
-python3 -m pip install matplotlib ipython
+python3 -m pip install matplotlib ipython tensorflow_datasets
 
 #### GPU Support
 
