@@ -15,11 +15,15 @@ class Inferer():
 
 	def __init__(self):
 
+		# training options:
+		self.epochs = 10
+		self.batch_size = 32
+
 		builder = tfds.builder('coil100')
 		# 1. Create the tfrecord files (no-op if already exists)
 		builder.download_and_prepare()
 		# 2. Load the `tf.data.Dataset`
-		self.dataset = builder.as_dataset(split='train', shuffle_files=True)
+		self.dataset = builder.as_dataset(split='train', shuffle_files=True, as_supervised=True)
 
 		self.input_shape = (128, 128, 3)
 
@@ -33,7 +37,11 @@ class Inferer():
 
 		AUTOTUNE = tf.data.experimental.AUTOTUNE
 
+		self.train_dataset = self.train_dataset.cache()
+		self.train_dataset = self.train_dataset.batch(self.batch_size)
 		self.train_dataset = self.train_dataset.prefetch(buffer_size=AUTOTUNE)
+		self.validation_dataset = self.validation_dataset.batch(self.batch_size)
+		self.validation_dataset = self.validation_dataset.cache()
 		self.validation_dataset = self.validation_dataset.prefetch(buffer_size=AUTOTUNE)
 
 		self.model = self.create_transfer_model()
@@ -43,10 +51,7 @@ class Inferer():
 					loss=tf.keras.losses.BinaryCrossentropy(from_logits=True),
 					metrics=['accuracy'])
 		# view summary of the chained model
-		print(model.summary())
-
-		# training options:
-		self.epochs = 10
+		print(self.model.summary())
 
 	def show_sample(self):
 
@@ -69,13 +74,13 @@ class Inferer():
 		plt.figure(figsize=(10,10))
 
 		i = 0
-		for example in ds:
+		for image, label in ds:
 			plt.subplot(5,5,i+1)
 			plt.xticks([])
 			plt.yticks([])
 			plt.grid(False)
-			plt.imshow(example["image"], cmap=plt.cm.binary)
-			plt.xlabel(example["label"].numpy())
+			plt.imshow(image, cmap=plt.cm.binary)
+			plt.xlabel(label.numpy())
 			i += 1
 		plt.show()
 
@@ -93,7 +98,7 @@ class Inferer():
 
 		# add classification head
 		image_batch, label_batch = next(iter(self.train_dataset))
-		feature_batch = base_model(image_batch)
+		feature_batch = pretrained_model(image_batch)
 
 		global_average_layer = tf.keras.layers.GlobalAveragePooling2D()
 		feature_batch_average = global_average_layer(feature_batch)
@@ -104,7 +109,7 @@ class Inferer():
 
 		# chain together
 		inputs = tf.keras.Input(shape=self.input_shape)
-		x = preprocess_input(x)
+		x = preprocess_input(inputs)
 		x = pretrained_model(x, training=False)
 		x = global_average_layer(x)
 		x = tf.keras.layers.Dropout(0.2)(x)
